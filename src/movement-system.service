@@ -1,0 +1,11 @@
+[Unit]
+Description=LIBS Movement System
+After=multi-user.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/python3 -u /home/pi/git/server/src/entrypoint.py
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
