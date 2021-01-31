@@ -1,16 +1,15 @@
+"""Movement controller"""
+
+__all__ = ["run"]
+
+import logging
 from time import sleep
 
 import RPi.GPIO as GPIO
 
-delay = 0.005  # Pause between loops
-Xpos = 0
-Ypos = 0
-Zpos = 0
-X = None
-Y = None
-Z = None
-sleepvar = 0
-sleeptarget = 3  # Number of axes
+import cfg
+
+# TODO: Why necessary?
 increment = 5.08 / 400  # Lead screw pitch / steps per rev
 
 
@@ -24,7 +23,7 @@ DIR_Y = 19  # Direction GPIO Pin
 STEP_Y = 20  # Step GPIO Pin
 DIR_Z = 21  # Direction GPIO Pin
 STEP_Z = 22  # Step GPIO Pin
-SLEEP = 23  # Sleep GPOI Pin
+SLEEP = 23  # Sleep GPIO Pin
 
 
 GPIO.setmode(GPIO.BCM)
@@ -38,56 +37,72 @@ GPIO.setup(DIR_Z, GPIO.OUT)
 GPIO.setup(STEP_Z, GPIO.OUT)
 GPIO.output(DIR_Z, CW)
 GPIO.setup(SLEEP, GPIO.OUT)
+logging.info("GPIO setup complete.")
+
+# ---- End setup ----
 
 
-while sleepvar != sleeptarget:
+def run() -> None:
+    """Receive movement instructions and execute until stopped."""
+    x_pos = y_pos = z_pos = 0  # TODO: Do they always start at 0?
 
-    sleepvar = 0
-    GPIO.output(SLEEP, GPIO.HIGH)
+    logging.info("Infinite loop starting.")
+    while True:
+        x_target = cfg.data["x"]
+        y_target = cfg.data["y"]
+        z_target = cfg.data["z"]
 
-    # X Axis
-    if X > Xpos:
+        if (x_pos, y_pos, z_pos) != (x_target, y_target, z_target):
+            GPIO.output(SLEEP, GPIO.HIGH)  # TODO: Why necessary?
+
+            x_pos = move_x(x_pos, x_target)
+            y_pos = move_y(y_pos, y_target)
+            z_pos = move_z(z_pos, z_target)
+
+            sleep(0.005)
+
+            # TODO: Why necessary?
+            GPIO.output(STEP_X, GPIO.LOW)
+            GPIO.output(STEP_Y, GPIO.LOW)
+            GPIO.output(STEP_Z, GPIO.LOW)
+        else:
+            GPIO.output(SLEEP, GPIO.LOW)  # TODO: Why necessary?
+
+
+def move_x(x_pos: int, x_target: int) -> int:
+    """Move along x-axis one step toward target position. If already there, do nothing."""
+    if x_pos < x_target:
         GPIO.output(STEP_X, GPIO.HIGH)
         GPIO.output(DIR_X, CW)
-        Xpos = Xpos + 1
-    if X < Xpos:
-        GPIO.output(STEP_Y, GPIO.HIGH)
+        x_pos += 1
+    if x_pos > x_target:
+        GPIO.output(STEP_X, GPIO.HIGH)
         GPIO.output(DIR_X, CCW)
-        Xpos = Xpos - 1
-    if X == Xpos:
-        sleepvar = sleepvar + 1
+        x_pos -= 1
+    return x_pos
 
-    # Y Axis
-    if Y > Ypos:
+
+def move_y(y_pos: int, y_target: int) -> int:
+    """Move along y-axis one step toward target position. If already there, do nothing."""
+    if y_pos < y_target:
         GPIO.output(STEP_Y, GPIO.HIGH)
         GPIO.output(DIR_Y, CW)
-        Xpos = Xpos + 1
-    if Y < Ypos:
+        y_pos += 1
+    if y_pos > y_target:
         GPIO.output(STEP_Y, GPIO.HIGH)
         GPIO.output(DIR_Y, CCW)
-        Xpos = Xpos - 1
-    if Y == Ypos:
-        sleepvar = sleepvar + 1
+        y_pos -= 1
+    return y_pos
 
-    # Z Axis
-    if Z > Zpos:
+
+def move_z(z_pos: int, z_target: int) -> int:
+    """Move along z-axis one step toward target position. If already there, do nothing."""
+    if z_pos < z_target:
         GPIO.output(STEP_Z, GPIO.HIGH)
         GPIO.output(DIR_Z, CW)
-        Xpos = Xpos + 1
-    if Z < Zpos:
+        z_pos += 1
+    if z_pos > z_target:
         GPIO.output(STEP_Z, GPIO.HIGH)
         GPIO.output(DIR_Z, CCW)
-        Xpos = Xpos - 1
-    if Z == Zpos:
-        sleepvar = sleepvar + 1
-
-    sleep(delay)
-
-    GPIO.output(STEP_X, GPIO.LOW)
-    GPIO.output(STEP_Y, GPIO.LOW)
-    GPIO.output(STEP_Z, GPIO.LOW)
-
-
-# Sleep Logic
-GPIO.output(SLEEP, GPIO.LOW)
-sleepvar = 0
+        z_pos -= 1
+    return z_pos
