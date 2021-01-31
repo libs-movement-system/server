@@ -1,12 +1,21 @@
 #!/usr/bin/env python3
-"""Run by systemd so the movement system is daemonized."""
+"""Entrypoint for systemd."""
 
+import logging
 import sys
+from threading import Thread
 
-import app
+import movement_system
 import server
 
 try:
-    server.run(app.handler)
+    logging.basicConfig(format="{name}: {message}", style="{", level=logging.INFO)
+
+    movement_system_thread = Thread(target=movement_system.run, daemon=True)
+    movement_system_thread.start()
+    logging.info("Movement system thread started.")
+
+    server.serve()
 except KeyboardInterrupt:
-    print("Ctrl-C interrupted execution.", file=sys.stderr)
+    logging.critical("Ctrl-C interrupted execution.")
+    sys.exit(1)
