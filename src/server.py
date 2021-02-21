@@ -6,7 +6,7 @@ import json
 import logging
 import socketserver
 
-import cfg
+import data
 
 SERVER_ADDRESS = ("raspberrypi.local", 35007)
 
@@ -20,15 +20,15 @@ def serve() -> None:
 
 class RequestHandler(socketserver.BaseRequestHandler):
     def setup(self) -> None:
-        logging.info(f"Will handle request from {self.client_address}.")
+        logging.info(f"Will handle request from {self.client_address}. Current targets: {data.targets}")
 
     def handle(self) -> None:
         """Load JSON from received string and update global data"""
         data_str = self.request.recv(1024)
-        cfg.data = json.loads(data_str)
+        data.targets = json.loads(data_str)
 
     def finish(self) -> None:
-        logging.info(f"Finished handling {cfg.data} from {self.client_address}.")
+        logging.info(f"Handled request from {self.client_address}. New targets: {data.targets}")
 
 
 class LoggingTCPServer(socketserver.TCPServer):
