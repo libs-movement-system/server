@@ -1,21 +1,21 @@
 #!/usr/bin/env python3
 """Entrypoint for systemd."""
 
+import atexit
 import logging
-import sys
 from threading import Thread
 
 import movement_system
 import server
 
-try:
-    logging.basicConfig(format="{name}: {message}", style="{", level=logging.INFO)
+logging.basicConfig(
+    format="{asctime} {levelname}: {message}", style="{", level=logging.INFO, datefmt="%m/%d/%Y %I:%M:%S %p"
+)
 
-    movement_system_thread = Thread(target=movement_system.run, daemon=True)
-    movement_system_thread.start()
-    logging.info("Movement system thread started.")
+atexit.register(movement_system.cleanup)
 
-    server.serve()
-except KeyboardInterrupt:
-    logging.critical("Ctrl-C interrupted execution.")
-    sys.exit(1)
+movement_system_thread = Thread(target=movement_system.run, daemon=True)
+movement_system_thread.start()
+logging.info("Movement system thread started.")
+
+server.serve()
